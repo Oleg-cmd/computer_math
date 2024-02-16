@@ -1,6 +1,36 @@
 import numpy as np
 
 
+def lib_det(matrix_A):
+    return np.linalg.det(matrix_A)
+
+
+def is_matrix_singular(matrix_A):
+    """
+    Проверяет, является ли матрица вырожденной.
+
+    Параметры:
+        matrix_A : Матрица.
+
+    Возвращает:
+        True, если матрица вырожденная, False в противном случае.
+    """
+
+    if matrix_A.shape[0] != matrix_A.shape[1]:
+        return True
+    # Проверка наличия нулевой строки или столбца
+    if any(np.all(row == 0) for row in matrix_A) or any(
+        np.all(column == 0) for column in matrix_A.T
+    ):
+        return True
+
+    det = lib_det(matrix_A)
+    if np.isclose(det, 0):
+        return True
+
+    return False
+
+
 def gaussian_elimination(matrix_A, vector_b):
     """
     Метод Гаусса для решения системы линейных уравнений Ax = b.
@@ -10,26 +40,39 @@ def gaussian_elimination(matrix_A, vector_b):
         vector_b : Вектор свободных членов.
 
     Возвращает:
-        Вектор решений системы уравнений и вектор неизвестных.
+        Вектор решений системы уравнений.
     """
+
+    if is_matrix_singular(matrix_A):
+        raise ValueError("Матрица вырождена")
+
     # Приведение к треугольному виду
     n = len(matrix_A)
     for i in range(n):
-        if matrix_A[i][i] == 0:
-            raise ValueError("Матрица вырождена")
+        # Шаг 1: Элиминация
         for j in range(i + 1, n):
+            # Вычисляем множитель, на который будем умножать текущую строку,
+            # чтобы занулить элемент под главной диагональю.
             factor = matrix_A[j][i] / matrix_A[i][i]
+            # Вычитаем из строки j произведение строки i на множитель.
             matrix_A[j] -= factor * matrix_A[i]
+            # Изменяем соответствующий элемент вектора свободных членов.
             vector_b[j] -= factor * vector_b[i]
 
     # Обратная подстановка
+    # Создаем вектор решений
     x = np.zeros(n)
     for i in range(n - 1, -1, -1):
-        if matrix_A[i][i] == 0:
-            raise ValueError("Матрица вырождена")
-        x[i] = (vector_b[i] - np.dot(matrix_A[i][i + 1 :], x[i + 1 :])) / matrix_A[i][i]
+        # Вычисляем скалярное произведение коэффициентов и решений уже найденных переменных
+        inner_product = np.dot(matrix_A[i][i + 1 :], x[i + 1 :])
 
-    return x, vector_b
+        # Вычитаем скалярное произведение из соответствующего элемента вектора свободных членов
+        residual = vector_b[i] - inner_product
+
+        # Делим полученное значение на коэффициент при текущей переменной
+        x[i] = residual / matrix_A[i][i]
+
+    return x
 
 
 def calculate_determinant(matrix_A):
@@ -61,6 +104,7 @@ def residual_vector(matrix_A, vector_x, vector_b):
     Возвращает:
        Вектор невязок.
     """
+    # умножение матрицы на ветор
     return vector_b - np.dot(matrix_A, vector_x)
 
 
@@ -133,16 +177,19 @@ def print_residuals(residuals):
 
 
 def realize(matrix_A, vector_b):
-    # Решение системы методом Гаусса
-    solution, vector_x = gaussian_elimination(matrix_A, vector_b)
+    try:
+        # Решение системы методом Гаусса
+        solution = gaussian_elimination(matrix_A, vector_b)
 
-    # Вывод результатов
-    print_triangular_matrix(matrix_A, vector_b)
-    print_solution(vector_x)
-    residuals = residual_vector(matrix_A, solution, vector_b)
-    print_residuals(residuals)
-    determinant = calculate_determinant(matrix_A)
-    print("Детерминант:", round(determinant, 3))
+        # Вывод результатов
+        print_triangular_matrix(matrix_A, vector_b)
+        print("Вектор решений (x):", solution)
+        residuals = residual_vector(matrix_A, solution, vector_b)
+        print("Вектор невязок (r):", residuals)
+        determinant = calculate_determinant(matrix_A)
+        print("Детерминант:", round(determinant, 3))
+    except ValueError as e:
+        print("Ошибка:", e)
 
 
 # Пример использования:
