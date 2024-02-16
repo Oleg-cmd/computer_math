@@ -1,11 +1,87 @@
 import numpy as np
 
 
-def lib_det(matrix_A):
-    return np.linalg.det(matrix_A)
+def lib_det(matrix_A, num_permutations):
+    # Проверяем, является ли матрица квадратной
+    if matrix_A.shape[0] != matrix_A.shape[1]:
+        raise ValueError("Matrix must be square")
+
+    # Извлекаем размерность матрицы
+    n = matrix_A.shape[0]
+
+    # Если количество перестановок четное, определитель остается без изменений
+    # Если количество перестановок нечетное, меняем знак определителя
+    sign = 1 if num_permutations % 2 == 0 else -1
+
+    # Находим определитель с помощью метода Гаусса
+    det = sign * gaussian_det(matrix_A)
+
+    print(np.linalg.det(matrix_A))
+
+    return det
 
 
-def is_matrix_singular(matrix_A):
+# Функция для вычисления определителя методом Гаусса
+def gaussian_det(matrix_A):
+    # Создаем копию матрицы, чтобы не изменять оригинал
+    A = np.copy(matrix_A)
+    n = A.shape[0]
+    det = 1
+
+    # Проходим по диагонали матрицы
+    for i in range(n):
+        # Если элемент на главной диагонали равен нулю, ищем ненулевой элемент ниже
+        if A[i, i] == 0:
+            for j in range(i + 1, n):
+                if A[j, i] != 0:
+                    # Меняем строки местами
+                    A[[i, j]] = A[[j, i]]
+                    # Изменяем знак определителя
+                    det *= -1
+                    break
+            # Если все элементы на этом столбце равны нулю, определитель равен нулю
+            else:
+                return 0
+
+        # Приводим матрицу к верхнетреугольному виду
+        for j in range(i + 1, n):
+            coef = A[j, i] / A[i, i]
+            A[j, i + 1 :] -= coef * A[i, i + 1 :]
+
+    # Определитель равен произведению элементов на главной диагонали
+    det *= np.prod(np.diagonal(A))
+
+    return det
+
+
+def sort_rows_with_single_nonzero(matrix_A, vector_b):
+    num_permutations = 0  # Инициализируем количество перестановок
+
+    # Создаем копию матрицы для сортировки
+    sorted_matrix_A = np.copy(matrix_A)
+
+    # Сортируем строки матрицы
+    sorted_matrix_A.sort(axis=1)
+    print(sorted_matrix_A)
+
+    # Получаем индексы для сортировки матрицы и вектора
+    sorted_indices = np.argsort(np.argmax(matrix_A != 0, axis=1))
+
+    # Сортируем матрицу и вектор
+    sorted_matrix_A = matrix_A[sorted_indices]
+    print(sorted_matrix_A)
+    sorted_vector_b = vector_b[sorted_indices]
+
+    # Сравниваем каждую строку отсортированной матрицы с исходной матрицей,
+    # чтобы определить количество перестановок
+    for row, sorted_row in zip(matrix_A, sorted_matrix_A):
+        if not np.array_equal(row, sorted_row):
+            num_permutations += 1
+
+    return sorted_matrix_A, sorted_vector_b, num_permutations
+
+
+def is_matrix_singular(matrix_A, vector_b, num):
     """
     Проверяет, является ли матрица вырожденной.
 
@@ -24,14 +100,14 @@ def is_matrix_singular(matrix_A):
     ):
         return True
 
-    det = lib_det(matrix_A)
-    if np.isclose(det, 0):
+    det = lib_det(matrix_A, num)
+    if np.isclose(det, 0) or np.all(vector_b == 0):
         return True
 
     return False
 
 
-def gaussian_elimination(matrix_A, vector_b):
+def gaussian_elimination(matrix_A, vector_b, num):
     """
     Метод Гаусса для решения системы линейных уравнений Ax = b.
 
@@ -43,7 +119,7 @@ def gaussian_elimination(matrix_A, vector_b):
         Вектор решений системы уравнений.
     """
 
-    if is_matrix_singular(matrix_A):
+    if is_matrix_singular(matrix_A, vector_b, num):
         raise ValueError("Матрица вырождена")
 
     # Приведение к треугольному виду
@@ -75,7 +151,7 @@ def gaussian_elimination(matrix_A, vector_b):
     return x
 
 
-def calculate_determinant(matrix_A):
+def c(matrix_A, num):
     """
     Вычисляет определитель матрицы методом Гаусса.
 
@@ -85,11 +161,7 @@ def calculate_determinant(matrix_A):
     Возвращает:
         Определитель матрицы.
     """
-    n = len(matrix_A)
-    det = 1.0
-    for i in range(n):
-        det *= matrix_A[i][i]
-    return det
+    return lib_det(matrix_A, num)
 
 
 def residual_vector(matrix_A, vector_x, vector_b):
@@ -179,15 +251,17 @@ def print_residuals(residuals):
 def realize(matrix_A, vector_b):
     try:
         # Решение системы методом Гаусса
-        solution = gaussian_elimination(matrix_A, vector_b)
-
+        matrix_A, vector_b, num = sort_rows_with_single_nonzero(matrix_A, vector_b)
+        solution = gaussian_elimination(matrix_A, vector_b, num)
         # Вывод результатов
         print_triangular_matrix(matrix_A, vector_b)
         print("Вектор решений (x):", solution)
         residuals = residual_vector(matrix_A, solution, vector_b)
         print("Вектор невязок (r):", residuals)
-        determinant = calculate_determinant(matrix_A)
+        determinant = lib_det(matrix_A, num)
+        print("Количество перестановок", num)
         print("Детерминант:", round(determinant, 3))
+
     except ValueError as e:
         print("Ошибка:", e)
 
@@ -196,8 +270,8 @@ def realize(matrix_A, vector_b):
 
 # Ввод из кода:
 print("\n" + "Ввод в коде")
-matrix_A = np.array([[2, 1, -1], [-3, -1, 2], [-2, 1, 2]], dtype=float)
-vector_b = np.array([8, -11, -3], dtype=float)
+matrix_A = np.array([[0, 1, 2], [5, 0, 3], [0, 7, 8]], dtype=float)
+vector_b = np.array([3, 4, 10], dtype=float)
 
 realize(matrix_A, vector_b)
 
