@@ -130,3 +130,27 @@ def check_lipschitz_condition(phi_prime, variable, interval_start, interval_end)
     abs_phi_prime = sp.lambdify(variable, abs(phi_prime), "numpy")
     max_value = np.max(abs_phi_prime(interval))
     return max_value < 1
+
+
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def get_value(x):
+    if is_float(x):
+        return float(x)
+    else:
+        print("Введено неверное значение")
+        exit()
+
+
+def get_value_int(x):
+    if is_float(x):
+        return int(x)
+    else:
+        print("Введено неверное значение")
+        exit()

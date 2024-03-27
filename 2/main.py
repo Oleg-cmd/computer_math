@@ -1,7 +1,15 @@
 import sympy as sp
 import numpy as np
 
-from utils import get_function_string, work, draw_plot, print_system, draw_plot_second
+from utils import (
+    get_function_string,
+    work,
+    draw_plot,
+    print_system,
+    draw_plot_second,
+    get_value,
+    get_value_int,
+)
 
 from functions.first import f as f_1, f_prime as f_1_prime, phi as phi_1
 from functions.second import f as f_2, f_prime as f_2_prime, phi as phi_2, f_np
@@ -45,9 +53,14 @@ def main():
         "Вы хотите решить нелинейное уравнение (введите 1) или систему нелинейных уравнений (введите 2): "
     )
 
-    a, b = 0, 1
     tol = 0.001
+
+    a, b = 0, 1
     max_iter = 100
+
+    a = get_value(input("Введите значение a: "))
+    b = get_value(input("Введите значение b: "))
+    max_iter = get_value_int(input("Введите максимальное количество итераций: "))
 
     if choice == "1":
         print("Доступные уравнения:")
