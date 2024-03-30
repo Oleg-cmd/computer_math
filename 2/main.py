@@ -30,6 +30,8 @@ from functions.system_first import (
     condition,
     first_np as np_01,
     sec_np as np_02,
+    trues as trues_1,
+    function_this_2,
 )
 
 from functions.system_second import (
@@ -39,6 +41,7 @@ from functions.system_second import (
     condition as condition_2,
     first_np as np_11,
     sec_np as np_12,
+    trues as trues_2,
 )
 
 from methods.simple_iteration_system import (
@@ -53,7 +56,7 @@ def main():
         "Вы хотите решить нелинейное уравнение (введите 1) или систему нелинейных уравнений (введите 2): "
     )
 
-    tol = 0.001
+    tol = 0.00001
 
     a, b = 0, 1
     max_iter = 100
@@ -124,19 +127,41 @@ def main():
 
         system_choise = input()
 
+        k = 0.1
+
         if system_choise == "1":
-            condition(a, b)
-            result, table = simple_iteration_system(a, b, system, tol, max_iter)
+            condition(a, b, k)
+            result, table = simple_iteration_system(
+                a, b, system, trues_1, tol, max_iter
+            )
             print_iteration_system_table(table)
             print("\nОтвет: ", result)
+            print("\nЗначение функции в точке:")
+
+            x = result[0]
+            y = result[1]
+
+            print(trues_1[0](x, y))
+            print(trues_1[1](x, y))
+
             draw_plot_second(-10, 10, eq_first, np_01, eq_second, np_02)
 
         elif system_choise == "2":
-            condition(a, b)
-            result, table = simple_iteration_system(a, b, system_2, tol, max_iter)
+            condition(a, b, k)
+            result, table = simple_iteration_system(
+                a, b, system_2, trues_2, tol, max_iter
+            )
             print_iteration_system_table(table)
             print("\nОтвет: ", result)
+            print("\nЗначение функции в точке:")
+            x = result[0]
+            y = result[1]
+
+            print(trues_2[0](x, y))
+            print(trues_2[1](x, y))
+
             draw_plot_second(-10, 10, eq_first_2, np_11, eq_second_2, np_12)
+
         else:
             print("Некорректный ввод")
             exit()

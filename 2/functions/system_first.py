@@ -18,6 +18,17 @@ def first(y):
     return np.cos(y)
 
 
+def function_this_1(x, y):
+    return x - np.cos(y)
+
+
+def function_this_2(x, y):
+    return 0.8 * (x**2) + 2 * (y**2) - 1
+
+
+trues = [function_this_1, function_this_2]
+
+
 def second(x):
     expr = (1 - 0.8 * x**2) / 2
 
@@ -36,16 +47,16 @@ def sec_np(x):
     return np.sqrt(expr)
 
 
-def condition(x0, y0):
+def condition(x0, y0, k):
     # Оценка производных в точке (x0, y0)
-    condition_y = check_lipschitz_condition(phi1_prime_y, y, y0 - 0.1, y0 + 0.1)
-    condition_x = check_lipschitz_condition(phi2_prime_x, x, x0 - 0.1, x0 + 0.1)
+    condition_y = check_lipschitz_condition(phi1_prime_y, y, y0 - k, y0 + k)
+    condition_x = check_lipschitz_condition(phi2_prime_x, x, x0 - k, x0 + k)
 
     if not (condition_y and condition_x):
-        print("Условия Липшица не выполнены, сходимость не гарантирована.")
+        print("Условия не выполнены, сходимость не гарантирована.")
         return False
     else:
-        print("Условия Липшица выполнены, можно продолжать с итерациями.")
+        print("Условия выполнены, можно продолжать с итерациями.")
         return True
 
 

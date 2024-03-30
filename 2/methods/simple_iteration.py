@@ -8,6 +8,7 @@ def check_convergence(f, phi, a, b):
     # Оставим вашу проверку сходимости без изменений
     derivative_phi = diff(phi(x, a, b), x)
     derivative_values = [derivative_phi.subs(x, a), derivative_phi.subs(x, b)]
+    print(derivative_values[0], derivative_values[1])
 
     max_derivative = max(abs(value) for value in derivative_values)
     if max_derivative >= 1:
