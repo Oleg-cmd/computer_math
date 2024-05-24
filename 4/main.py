@@ -1,33 +1,39 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from math import log, exp, sqrt
+from sympy import symbols, sqrt, latex
 
-FILE_IN = "input_2.txt"
+
+
+FILE_IN = "input.txt"
 FILE_OUT = "output.txt"
 
 
 def solve_minor(matrix, i, j):
     """Найти минор элемента матрицы"""
     n = len(matrix)
-    return [
+    # print(f"Вычисление минора для элемента в позиции ({i}, {j})")
+    minor = [
         [matrix[row][col] for col in range(n) if col != j]
         for row in range(n)
         if row != i
     ]
-
+    # print(f"Минор для элемента в позиции ({i}, {j}) равен: \n{minor}\n")
+    return minor
 
 def solve_det(matrix):
     """Найти определитель матрицы"""
     n = len(matrix)
     if n == 1:
+        # print(f"Определитель матрицы {matrix} равен: {matrix[0][0]}")
         return matrix[0][0]
     det = 0
     sgn = 1
     for j in range(n):
         det += sgn * matrix[0][j] * solve_det(solve_minor(matrix, 0, j))
         sgn *= -1
+    print(f"Определитель матрицы {matrix} равен: {det}\n")
     return det
-
 
 def calc_s(dots, f):
     """Найти меру отклонения"""
@@ -35,38 +41,62 @@ def calc_s(dots, f):
     x = [dot[0] for dot in dots]
     y = [dot[1] for dot in dots]
 
-    return sum([(f(x[i]) - y[i]) ** 2 for i in range(n)])
+    s = sum([(f(x[i]) - y[i]) ** 2 for i in range(n)])
+    print(f"Мера отклонения для точек {dots} и функции f равна: {s}\n")
+    return s
+
 
 
 def calc_stdev(dots, f):
     """Найти среднеквадратичное отклонение"""
     n = len(dots)
 
-    return sqrt(calc_s(dots, f) / n)
+    # Вывод формулы среднеквадратичного отклонения
+    print("Формула среднеквадратичного отклонения:")
+    print("σ = sqrt(∑(y - f(x))^2 / n)")
+
+    s = sqrt(calc_s(dots, f) / n)
+    print(f"Среднеквадратичное отклонение для точек {dots} и функции f равно: {s}\n")
+    return s
 
 
 def lin_func(dots):
     """Линейная аппроксимация"""
+    print("Считаем ЛИНЕЙНУЮ АППРОКСИМАЦИЮ\n")
     data = {}
 
     n = len(dots)
     x = [dot[0] for dot in dots]
     y = [dot[1] for dot in dots]
 
+    # Вычисление сумм для линейной аппроксимации
     sx = sum(x)
     sx2 = sum([xi**2 for xi in x])
     sy = sum(y)
     sxy = sum([x[i] * y[i] for i in range(n)])
 
+    print(f"\nВычисление сумм для линейной аппроксимации:\n")
+    print(f"sx = {sx}")
+    print(f"sx2 = {sx2}")
+    print(f"sy = {sy}")
+    print(f"sxy = {sxy}")
+
+    # Вычисление определителей для линейной аппроксимации
     d = solve_det([[sx2, sx], [sx, n]])
     d1 = solve_det([[sxy, sx], [sy, n]])
     d2 = solve_det([[sx2, sxy], [sx, sy]])
+
+    print(f"\nВычисление определителей для линейной аппроксимации:\n")
+    print(f"d = {d}")
+    print(f"d1 = {d1}")
+    print(f"d2 = {d2}")
 
     try:
         a = d1 / d
         b = d2 / d
     except ZeroDivisionError:
         return None
+
     data["a"] = a
     data["b"] = b
 
@@ -75,21 +105,33 @@ def lin_func(dots):
 
     data["str_f"] = "fi = a*x + b"
 
+    print(f"\nЛинейная аппроксимация:\n")
+    print(f"fi = {a}*x + {b}")
+
     data["s"] = calc_s(dots, f)
 
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
     data["stdev"] = calc_stdev(dots, f)
+
+    print(f"\nСреднеквадратичное отклонение:\n\n")
+    print(f"σ = {data['stdev']}")
 
     return data
 
 
+
 def sqrt_func(dots):
     """Квадратичная аппроксимация"""
+    print("Считаем КВАДРАТИЧНУЮ АППРОКСИМАЦИЮ\n")
     data = {}
 
     n = len(dots)
     x = [dot[0] for dot in dots]
     y = [dot[1] for dot in dots]
 
+    # Вычисление сумм для квадратичной аппроксимации
     sx = sum(x)
     sx2 = sum([xi**2 for xi in x])
     sx3 = sum([xi**3 for xi in x])
@@ -98,10 +140,26 @@ def sqrt_func(dots):
     sxy = sum([x[i] * y[i] for i in range(n)])
     sx2y = sum([(x[i] ** 2) * y[i] for i in range(n)])
 
+    print(f"\nВычисление сумм для квадратичной аппроксимации:\n")
+    print(f"sx = {sx}")
+    print(f"sx2 = {sx2}")
+    print(f"sx3 = {sx3}")
+    print(f"sx4 = {sx4}")
+    print(f"sy = {sy}")
+    print(f"sxy = {sxy}")
+    print(f"sx2y = {sx2y}")
+
+    # Вычисление определителей для квадратичной аппроксимации
     d = solve_det([[n, sx, sx2], [sx, sx2, sx3], [sx2, sx3, sx4]])
     d1 = solve_det([[sy, sx, sx2], [sxy, sx2, sx3], [sx2y, sx3, sx4]])
     d2 = solve_det([[n, sy, sx2], [sx, sxy, sx3], [sx2, sx2y, sx4]])
     d3 = solve_det([[n, sx, sy], [sx, sx2, sxy], [sx2, sx3, sx2y]])
+
+    print(f"\nВычисление определителей для квадратичной аппроксимации:\n")
+    print(f"d = {d}")
+    print(f"d1 = {d1}")
+    print(f"d2 = {d2}")
+    print(f"d3 = {d3}")
 
     try:
         c = d1 / d
@@ -109,6 +167,7 @@ def sqrt_func(dots):
         a = d3 / d
     except ZeroDivisionError:
         return None
+
     data["c"] = c
     data["b"] = b
     data["a"] = a
@@ -118,21 +177,32 @@ def sqrt_func(dots):
 
     data["str_f"] = "fi = a*x^2 + b*x + c"
 
+    print(f"\nКвадратичная аппроксимация:\n")
+    print(f"fi = {a}*x^2 + {b}*x + {c}")
+
     data["s"] = calc_s(dots, f)
 
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
     data["stdev"] = calc_stdev(dots, f)
+
+    print(f"\nСреднеквадратичное отклонение:\n")
+    print(f"σ = {data['stdev']}")
 
     return data
 
 
 def cubic_func(dots):
     """Кубическая аппроксимация"""
+    print("Считаем КУБИЧЕСКУЮ АППРОКСИМАЦИЮ\n")
     data = {}
 
     n = len(dots)
     x = [dot[0] for dot in dots]
     y = [dot[1] for dot in dots]
 
+    # Вычисление сумм для кубической аппроксимации
     sx = sum(x)
     sx2 = sum(xi**2 for xi in x)
     sx3 = sum(xi**3 for xi in x)
@@ -144,6 +214,19 @@ def cubic_func(dots):
     sx2y = sum((x[i] ** 2) * y[i] for i in range(n))
     sx3y = sum((x[i] ** 3) * y[i] for i in range(n))
 
+    print(f"\nВычисление сумм для кубической аппроксимации:\n")
+    print(f"sx = {sx}")
+    print(f"sx2 = {sx2}")
+    print(f"sx3 = {sx3}")
+    print(f"sx4 = {sx4}")
+    print(f"sx5 = {sx5}")
+    print(f"sx6 = {sx6}")
+    print(f"sy = {sy}")
+    print(f"sxy = {sxy}")
+    print(f"sx2y = {sx2y}")
+    print(f"sx3y = {sx3y}")
+
+    # Вычисление определителей для кубической аппроксимации
     d = solve_det(
         [
             [n, sx, sx2, sx3],
@@ -187,6 +270,13 @@ def cubic_func(dots):
         ]
     )
 
+    print(f"\nВычисление определителей для кубической аппроксимации:\n")
+    print(f"d = {d}")
+    print(f"d1 = {d1}")
+    print(f"d2 = {d2}")
+    print(f"d3 = {d3}")
+    print(f"d4 = {d4}")
+
     try:
         a = d4 / d
         b = d3 / d
@@ -206,15 +296,25 @@ def cubic_func(dots):
     data["f"] = f
     data["str_f"] = "fi = a*x^3 + b*x^2 + c*x + d"
 
+    print(f"\nКубическая аппроксимация:\n")
+    print(f"fi = {a}*x^3 + {b}*x^2 + {c}*x + {d}")
+
     data["s"] = calc_s(dots, f)
+
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
     data["stdev"] = calc_stdev(dots, f)
-    # print(data)
+
+    print(f"\nСреднеквадратичное отклонение:\n")
+    print(f"σ = {data['stdev']}")
 
     return data
 
 
 def exp_func(dots):
     """Экспоненциальная аппроксимация"""
+    print("Считаем ЭКСПОНЕНЦИАЛЬНУЮ АППРОКСИМАЦИЮ\n")
     data = {}
     valid_dots = [
         (x, y) for x, y in dots if y > 0
@@ -230,7 +330,10 @@ def exp_func(dots):
     x = [dot[0] for dot in valid_dots]
     y = [dot[1] for dot in valid_dots]
 
+    # Применение логарифмической функции к y для линеаризации
     lin_y = [log(yi) for yi in y]
+
+    # Линейная аппроксимация линеаризованных данных
     lin_result = lin_func(list(zip(x, lin_y)))
 
     if lin_result is None:
@@ -246,13 +349,25 @@ def exp_func(dots):
     data["f"] = f
     data["str_f"] = "fi = a*e^(b*x)"
 
+    print(f"\nЭкспоненциальная аппроксимация:\n")
+    print(f"fi = {a}*e^({b}*x)")
+
     data["s"] = calc_s(valid_dots, f)
+
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
     data["stdev"] = calc_stdev(valid_dots, f)
+
+    print(f"\nСреднеквадратичное отклонение:\n")
+    print(f"σ = {data['stdev']}")
+
     return data
 
 
 def log_func(dots):
     """Логарифмическая аппроксимация"""
+    print("Считаем ЛОГАРИФМИЧЕСКУЮ АППРОКСИМАЦИЮ\n")
     data = {}
     valid_dots = [(x, y) for x, y in dots if x > 0]
 
@@ -266,7 +381,10 @@ def log_func(dots):
     x = [dot[0] for dot in valid_dots]
     y = [dot[1] for dot in valid_dots]
 
+    # Применение логарифмической функции к x для линеаризации
     lin_x = [log(xi) for xi in x]
+
+    # Линейная аппроксимация линеаризованных данных
     lin_result = lin_func(list(zip(lin_x, y)))
 
     if lin_result is None:
@@ -282,13 +400,26 @@ def log_func(dots):
     data["f"] = f
     data["str_f"] = "fi = a*ln(x) + b"
 
+    print(f"\nЛогарифмическая аппроксимация:\n")
+    print(f"fi = {a}*ln(x) + {b}")
+
     data["s"] = calc_s(valid_dots, f)
+
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
     data["stdev"] = calc_stdev(valid_dots, f)
+
+    print(f"\nСреднеквадратичное отклонение:\n")
+    print(f"σ = {data['stdev']}")
+
     return data
+
 
 
 def pow_func(dots):
     """Степенная аппроксимация"""
+    print("Считаем СТЕПЕННУЮ АППРОКСИМАЦИЮ\n")
     data = {}
     # Check all dots at once if any x or y <= 0
     if any(x <= 0 or y <= 0 for x, y in dots):
@@ -301,21 +432,23 @@ def pow_func(dots):
     x = [dot[0] for dot in dots]
     y = [dot[1] for dot in dots]
 
-    # Apply logarithm to x and y
+    # Применение логарифмической функции к x и y для линеаризации
     lin_x = [log(xi) for xi in x]
     lin_y = [log(yi) for yi in y]
 
-    # Perform linear regression on the logged values
+    # Линейная аппроксимация линеаризованных данных
     lin_result = lin_func(list(zip(lin_x, lin_y)))
+    
+
     if lin_result is None:
         print("Linear approximation failed in power function.")
         return None
 
-    # Exponentiate the intercept to get 'a' and use the slope as 'b'
+    # Возведение в степень коэффициента пересечения для получения 'a' и использование углового коэффициента в качестве 'b'
     a = exp(lin_result["b"])
     b = lin_result["a"]
 
-    # Define the power function
+    # Определение степенной функции
     f = lambda z: (
         a * (z**b) if z > 0 else float("inf")
     )  # Still safeguard against z <= 0
@@ -327,7 +460,17 @@ def pow_func(dots):
     data["s"] = calc_s(dots, f)  # Calculate sum of squares
     data["stdev"] = calc_stdev(dots, f)  # Calculate standard deviation
 
+    print(f"\nСтепенная аппроксимация:\n")
+    print(f"fi = {a}*x^{b}")
+
+    print(f"\nМера отклонения:\n")
+    print(f"s = {data['s']}")
+
+    print(f"\nСреднеквадратичное отклонение:\n")
+    print(f"σ = {data['stdev']}")
+
     return data
+
 
 
 def plot(x, y, plot_x, plot_y, labels, best_answers):

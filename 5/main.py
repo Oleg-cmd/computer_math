@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import sin, sqrt, factorial
 
+from functools import reduce
 
 def lagrange_polynomial(dots, x):
     """ Многочлен Лагранжа """
     result = 0
-
+    table = [['i', 'x_i', 'f(x_i)', 'L_i(x)']]
     n = len(dots)
     for i in range(n):
         c1 = c2 = 1
@@ -14,80 +15,118 @@ def lagrange_polynomial(dots, x):
             if i != j:
                 c1 *= x - dots[j][0]
                 c2 *= dots[i][0] - dots[j][0]
-        result += dots[i][1] * c1 / c2
-
-    return result
-
-
-def t_calc(t, n, forward=True):
-    """ Вычислить параметр 't' для многочлена Ньютона """
-    result = t
-
-    for i in range(1, n):
-        if forward:
-            result *= t - i
-        else:
-            result *= t + i
-
-    return result
-
+        li_x = c1 / c2
+        result += dots[i][1] * li_x
+        table.append([i, dots[i][0], dots[i][1], result])
+    return result, table
 
 def newton_divided_differences(dots):
     """ Многочлен Ньютона с разделенными разностями """
     n = len(dots)
-    divided_differences = [dots[i][1] for i in range(n)]
+    divided_differences = [[dots[i][1] for i in range(n)]]
     for j in range(1, n):
-        for i in range(n - 1, j - 1, -1):
-            divided_differences[i] = (divided_differences[i] - divided_differences[i - 1]) / (dots[i][0] - dots[i - j][0])
+        row = []
+        for i in range(n - j):
+            diff = (divided_differences[j - 1][i + 1] - divided_differences[j - 1][i]) / (dots[i + j][0] - dots[i][0])
+            row.append(diff)
+        divided_differences.append(row)
     return divided_differences
 
 def newton_polynomial(dots, x):
     """ Многочлен Ньютона с разделенными разностями """
     n = len(dots)
     divided_differences = newton_divided_differences(dots)
-    result = divided_differences[0]
+    result = divided_differences[0][0]
+    table = [['i', 'x_i', 'f[x_i]', 'P(x)']]
     for i in range(1, n):
-        term = divided_differences[i]
+        term = divided_differences[i][0]
         for j in range(i):
             term *= (x - dots[j][0])
         result += term
-    return result
+        table.append([i, dots[i][0], divided_differences[i][0], result])
+    return result, table
 
+def divided_differences(dots):
+    """ Вычисление разделенных разностей """
+    n = len(dots)
+    table = np.zeros((n, n))
+    for i in range(n):
+        table[i, 0] = dots[i][1]
+    for j in range(1, n):
+        for i in range(n - j):
+            table[i, j] = table[i + 1, j - 1] - table[i, j - 1]
+    return table
+
+def finite_differences_table(dots):
+    """ Таблица конечных разностей """
+    n = len(dots)
+    table = [['i'] + [f"Δ^{i}y{j}" for i in range(n) for j in range(n - i)]]
+    diff_table = np.zeros((n, n), dtype=object)
+    for i in range(n):
+        diff_table[i, 0] = dots[i][1]
+    for j in range(1, n):
+        for i in range(n - j):
+            diff_table[i, j] = diff_table[i + 1, j - 1] - diff_table[i, j - 1]
+    for i in range(n):
+        row = [i]
+        for j in range(n - i):
+            row.append(diff_table[i, j])
+        table.append(row)
+    return table
 
 def gauss_polynomial(dots, x):
-    """ Многочлен Гаусса """
-    result = 0
+    xs = [dot[0] for dot in dots]
+    ys = [dot[1] for dot in dots]
+    n = len(xs) - 1
+    alpha_ind = n // 2
+    fin_difs = []
+    fin_difs.append(ys[:])
 
-    n = len(dots)
-    for i in range(n):
-        term = 1
-        for j in range(n):
-            if i != j:
-                term *= (x - dots[j][0]) / (dots[i][0] - dots[j][0])
-        result += dots[i][1] * term
+    for k in range(1, n + 1):
+        last = fin_difs[-1][:]
+        fin_difs.append([last[i + 1] - last[i] for i in range(n - k + 1)])
 
-    return result
+    h = xs[1] - xs[0]
+    max_dts = (n + 1) // 2
+    dts1 = [i // 2 if i % 2 == 0 else -(i // 2 + 1) for i in range(max_dts * 2)]
 
+    f1 = lambda x: ys[alpha_ind] + sum([
+        reduce(lambda a, b: a * b,
+               [(x - xs[alpha_ind]) / h + dts1[j] for j in range(k)])
+        * fin_difs[k][len(fin_difs[k]) // 2] / factorial(k)
+        for k in range(1, n + 1)])
 
-def plot(x, y, plot_x, plot_y):
-    """ Отрисовать график по заданным координатам узлов и точкам многочлена """
-    ax = plt.gca()
+    f2 = lambda x: ys[alpha_ind] + sum([
+        reduce(lambda a, b: a * b,
+               [(x - xs[alpha_ind]) / h - dts1[j] for j in range(k)])
+        * fin_difs[k][len(fin_difs[k]) // 2 - (1 - len(fin_difs[k]) % 2)] / factorial(k)
+        for k in range(1, n + 1)])
+
+    return f1(x) if x > xs[alpha_ind] else f2(x)
+
+def plot(x, y, plot_x, plot_y, additional_point=None):
+    fig, ax = plt.subplots()
     ax.spines['left'].set_position('zero')
+    ax.spines['left'].set_color('gray')
     ax.spines['bottom'].set_position('zero')
+    ax.spines['bottom'].set_color('gray')
     ax.spines['right'].set_color('none')
     ax.spines['top'].set_color('none')
-    ax.plot(1, 0, marker=">", ms=5, color='k',
-            transform=ax.get_yaxis_transform(), clip_on=False)
-    ax.plot(0, 1, marker="^", ms=5, color='k',
-            transform=ax.get_xaxis_transform(), clip_on=False)
-
-    # Отрисовываем график
-    plt.plot(x, y, 'o', plot_x, plot_y)
+    ax.plot(1, 0, marker=">", ms=5, color='k', transform=ax.get_yaxis_transform(), clip_on=False)
+    ax.plot(0, 1, marker="^", ms=5, color='k', transform=ax.get_xaxis_transform(), clip_on=False)
+    ax.plot(x, y, 'o', label='Узлы')
+    ax.plot(plot_x, plot_y, label='График многочлена')
+    if additional_point is not None:
+        ax.plot(additional_point[0], additional_point[1], 'ro', label='Значение аргумента')
+    ax.legend()
+    ax.set_title('График многочлена')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_xlim(min(x) - 1, max(x) + 1)
+    ax.set_ylim(min(y) - 1, max(y) + 1)
     plt.show(block=False)
 
-
 def getfunc(func_id):
-    """ Получить выбранную функцию """
     if func_id == '1':
         return lambda x: sqrt(x)
     elif func_id == '2':
@@ -97,22 +136,16 @@ def getfunc(func_id):
     else:
         return None
 
-
 def make_dots(f, a, b, n):
     dots = []
-
     h = (b - a) / (n - 1)
     for i in range(n):
         dots.append((a, f(a)))
         a += h
-
     return dots
 
-
 def getdata_input():
-    """ Получить данные с клавиатуры """
     data = {}
-
     print("\nВыберите метод интерполяции.")
     print(" 1 — Многочлен Лагранжа")
     print(" 2 — Многочлен Ньютона с разделенными разностями")
@@ -189,6 +222,8 @@ def getdata_input():
             except ValueError:
                 print("Количество узлов должно быть целым числом > 1.")
         dots = make_dots(func, a, b, n)
+        
+    print(dots)
     data['dots'] = dots
 
     print("\nВведите значение аргумента для интерполирования.")
@@ -202,7 +237,6 @@ def getdata_input():
 
     return data
 
-
 def main():
     print("\tЛабораторная работа #5 (8)")
     print("\t   Интерполяция функций")
@@ -212,12 +246,14 @@ def main():
     y = np.array([dot[1] for dot in data['dots']])
     plot_x = np.linspace(np.min(x), np.max(x), 100)
     plot_y = None
+    table = None
+
     if data['method_id'] == '1':
-        answer = lagrange_polynomial(data['dots'], data['x'])
-        plot_y = [lagrange_polynomial(data['dots'], x) for x in plot_x]
+        answer, table = lagrange_polynomial(data['dots'], data['x'])
+        plot_y = [lagrange_polynomial(data['dots'], x)[0] for x in plot_x]
     elif data['method_id'] == '2':
-        answer = newton_polynomial(data['dots'], data['x'])
-        plot_y = [newton_polynomial(data['dots'], x) for x in plot_x]
+        answer, table = newton_polynomial(data['dots'], data['x'])
+        plot_y = [newton_polynomial(data['dots'], x)[0] for x in plot_x]
     elif data['method_id'] == '3':
         answer = gauss_polynomial(data['dots'], data['x'])
         plot_y = [gauss_polynomial(data['dots'], x) for x in plot_x]
@@ -225,14 +261,21 @@ def main():
         answer = None
 
     if answer is not None:
-        plot(x, y, plot_x, plot_y)
+        if table is not None:
+            print("\nТаблица промежуточных значений:")
+            for row in table:
+                print(row)
+                
+        print("\nТаблица конечных разностей: ")
+        finite_differences = finite_differences_table(data['dots'])
+        for row in finite_differences:
+            print(row)
+
+        plot(x, y, plot_x, plot_y, [data['x'], answer])
 
     print("\n\nРезультаты вычисления.")
     print(f"Приближенное значение функции: {answer}")
 
     input("\n\nНажмите Enter, чтобы выйти.")
-
-
-
 
 main()
