@@ -18,12 +18,16 @@ def euler_method(f, x0, y0, xn, h, E):
     x = np.linspace(x0, xn, n)
     y = np.zeros(n)
     y[0] = y0
+    table = PrettyTable()
+    table.field_names = ["i", "x_i", "y_i", "f(x_i, y_i)", "y_i+1"]
     for i in range(n - 1):
         y[i + 1] = y[i] + h * f(x[i], y[i])
+        table.add_row([i, f"{x[i]:.4f}", f"{y[i]:.4f}", f"{f(x[i], y[i]):.4f}", f"{y[i + 1]:.4f}"])
         if np.abs(y[i + 1] - y[i]) < E:
             x = x[:i+2]
             y = y[:i+2]
             break
+    print(table)
     return x, y
 
 # Усовершенствованный метод Эйлера
@@ -32,14 +36,18 @@ def improved_euler_method(f, x0, y0, xn, h, E):
     x = np.linspace(x0, xn, n)
     y = np.zeros(n)
     y[0] = y0
+    table = PrettyTable()
+    table.field_names = ["i", "x_i", "y_i", "k1", "k2", "y_i+1"]
     for i in range(n - 1):
         k1 = h * f(x[i], y[i])
         k2 = h * f(x[i] + h, y[i] + k1)
         y[i + 1] = y[i] + (k1 + k2) / 2
+        table.add_row([i, f"{x[i]:.4f}", f"{y[i]:.4f}", f"{k1:.4f}", f"{k2:.4f}", f"{y[i + 1]:.4f}"])
         if np.abs(y[i + 1] - y[i]) < E:
             x = x[:i+2]
             y = y[:i+2]
             break
+    print(table)
     return x, y
 
 # Метод Рунге-Кутта 4-го порядка
@@ -48,16 +56,20 @@ def rk4_method(f, x0, y0, xn, h, E):
     x = np.linspace(x0, xn, n)
     y = np.zeros(n)
     y[0] = y0
+    table = PrettyTable()
+    table.field_names = ["i", "x_i", "y_i", "k1", "k2", "k3", "k4", "y_i+1"]
     for i in range(n - 1):
         k1 = h * f(x[i], y[i])
         k2 = h * f(x[i] + h / 2, y[i] + k1 / 2)
         k3 = h * f(x[i] + h / 2, y[i] + k2 / 2)
         k4 = h * f(x[i] + h, y[i] + k3)
         y[i + 1] = y[i] + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        table.add_row([i, f"{x[i]:.4f}", f"{y[i]:.4f}", f"{k1:.4f}", f"{k2:.4f}", f"{k3:.4f}", f"{k4:.4f}", f"{y[i + 1]:.4f}"])
         if np.abs(y[i + 1] - y[i]) < E:
             x = x[:i+2]
             y = y[:i+2]
             break
+    print(table)
     return x, y
 
 # Метод Адамса
@@ -66,16 +78,18 @@ def adams_method(f, x0, y0, xn, h, E):
     x = np.arange(x0, xn + h, h)
     y = np.zeros(len(x))
     y[:4] = y_rk
+    table = PrettyTable()
+    table.field_names = ["i", "x_i", "y_i", "f(x_i, y_i)", "y_i+1"]
     for i in range(3, len(x) - 1):
         y[i + 1] = y[i] + h * (55 * f(x[i], y[i]) - 59 * f(x[i - 1], y[i - 1]) + 37 * f(x[i - 2], y[i - 2]) - 9 * f(x[i - 3], y[i - 3])) / 24
+        table.add_row([i, f"{x[i]:.4f}", f"{y[i]:.4f}", f"{f(x[i], y[i]):.4f}", f"{y[i + 1]:.4f}"])
         if np.abs(y[i + 1] - y[i]) < E:
             x = x[:i+2]
             y = y[:i+2]
             break
-    x = np.clip(x, x0, xn) 
+    x = np.clip(x, x0, xn)
+    print(table)
     return x, y
-
-
 
 # Ввод данных с клавиатуры
 print("Выберите функцию для решения:")
