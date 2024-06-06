@@ -41,8 +41,8 @@ def euler_method(f, x0, y0, xn, h, E):
         if x_new > xn:
             x_new = xn
         y_new = euler_step(f, x[-1], y[-1], h)
-        y_half = euler_step(f, x[-1], y[-1], h / 2)
-        y_half = euler_step(f, x[-1] + h / 2, y_half, h / 2)
+        y_half_step = euler_step(f, x[-1], y[-1], h / 2)
+        y_half = euler_step(f, x[-1] + h / 2, y_half_step, h / 2)
         
         R = np.abs(y_new - y_half) / (2**p - 1)
         
@@ -71,8 +71,8 @@ def improved_euler_method(f, x0, y0, xn, h, E):
         if x_new > xn:
             x_new = xn
         y_new = improved_euler_step(f, x[-1], y[-1], h)
-        y_half = improved_euler_step(f, x[-1], y[-1], h / 2)
-        y_half = improved_euler_step(f, x[-1] + h / 2, y_half, h / 2)
+        y_half_step = improved_euler_step(f, x[-1], y[-1], h / 2)
+        y_half = improved_euler_step(f, x[-1] + h / 2, y_half_step, h / 2)
         
         R = np.abs(y_new - y_half) / (2**p - 1)
         
@@ -104,8 +104,8 @@ def rk4_method(f, x0, y0, xn, h, E):
         if x_new > xn:
             x_new = xn
         y_new = rk4_step(f, x[-1], y[-1], h)
-        y_half = rk4_step(f, x[-1], y[-1], h / 2)
-        y_half = rk4_step(f, x[-1] + h / 2, y_half, h / 2)
+        y_half_step = rk4_step(f, x[-1], y[-1], h / 2)
+        y_half = rk4_step(f, x[-1] + h / 2, y_half_step, h / 2)
         
         R = np.abs(y_new - y_half) / (2**p - 1)
         
@@ -141,8 +141,8 @@ def adams_method(f, x0, y0, xn, h, E):
             x_new = xn
         f_vals = [f(x[j], y[j]) for j in range(i, i-4, -1)]
         y_new = y[-1] + h * (55 * f_vals[0] - 59 * f_vals[1] + 37 * f_vals[2] - 9 * f_vals[3]) / 24
-        y_half = rk4_step(f, x[-1], y[-1], h / 2)
-        y_half = rk4_step(f, x[-1] + h / 2, y_half, h / 2)
+        y_half_step = rk4_step(f, x[-1], y[-1], h / 2)
+        y_half = rk4_step(f, x[-1] + h / 2, y_half_step, h / 2)
         
         R = np.abs(y_new - y_half) / (2**p - 1)
         
