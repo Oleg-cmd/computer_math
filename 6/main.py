@@ -1,17 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
+from scipy.integrate import solve_ivp, odeint
 from prettytable import PrettyTable
 
 def f1(x, y):
-    return y + (1 + x) * y**2
+    return x ** 2 + x - 2 * y
+
+def f1_ac(x):
+    return x ** 2 / 2
 
 def f2(x, y):
-    return x**2 * y
+    return 2 * x - y + x ** 2
+
+def f2_ac(x):
+    return x ** 2
 
 def f3(x, y):
-    return 3 * x**2 * y + x**2 * np.exp(x**3)
+    if x != 0:
+        return 5 * x ** 2 - 2 * y / x
+    return 0
 
+def f3_ac(x):
+    return x ** 3
 
 def euler_step(f, x, y, h):
     return y + h * f(x, y)
@@ -28,209 +38,129 @@ def rk4_step(f, x, y, h):
     k4 = h * f(x + h, y + k3)
     return y + (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
-def euler_method(f, x0, y0, xn, h, E):
-    p = 1  # Порядок метода Эйлера
+def euler_method(f, x0, y0, x_nodes, h, E):
+    p = 1
     x = [x0]
     y = [y0]
-    table = PrettyTable()
-    table.field_names = ["i", "x_i", "y_i", "f(x_i, y_i)", "y_i+1"]
-    i = 0
+    table_x = PrettyTable()
+    table_x.field_names = ["Узел", "Шаг", "F_h", "F_h/2", "R", "E"]
     iterations = 0
-    reduce_step = False
-    previous_h = h
-    min_h = 1e-6  # Минимальный шаг, чтобы избежать бесконечного уменьшения
 
-    while x[-1] < xn:
-        if reduce_step:
-            x_new = x[-1] + previous_h
-            reduce_step = False
-        else:
-            x_new = x[-1] + h
-
-        if x_new > xn:
-            x_new = xn
-
-        y_new = euler_step(f, x[-1], y[-1], h)
-        y_half_1 = euler_step(f, x[-1], y[-1], h / 2)
-        y_half_2 = euler_step(f, x[-1] + h / 2, y_half_1, h / 2)
-
-        R = np.abs(y_new - y_half_2) / (2**p - 1)
-
-        print(f"x = {x[-1]:.4f}, h = {h:.4f}, y_new = {y_new:.4f}, y_half_2 = {y_half_2:.4f}, R = {R:.4f}")
-
-        if R <= E:
-            x.append(x_new)
-            y.append(y_new)
-            table.add_row([i, f"{x[-1]:.4f}", f"{y[-1]:.4f}", f"{f(x[-1], y[-1]):.4f}", f"{y_half_2:.4f}"])
-            i += 1
-            previous_h = h
-        else:
-            if h > min_h:
-                h /= 2
-                reduce_step = True
-                previous_h = h
-            else:
-                print("Шаг достиг минимального значения, продолжение с минимальным шагом")
-                x.append(x_new)
+    for node in x_nodes[1:]:
+        while True:
+            y_new = euler_step(f, x[-1], y[-1], h)
+            y_half_1 = euler_step(f, x[-1], y[-1], h / 2)
+            y_half_2 = euler_step(f, x[-1] + h / 2, y_half_1, h / 2)
+            R = np.abs(y_new - y_half_2) / (2**p - 1)
+            table_x.add_row([node, f"{h:.4f}", f"{y_half_1:.4f}", f"{y_half_2:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            if R <= E:
+                x.append(node)
                 y.append(y_new)
-                table.add_row([i, f"{x[-1]:.4f}", f"{y[-1]:.4f}", f"{f(x[-1], y[-1]):.4f}", f"{y_half_2:.4f}"])
-                i += 1
-                previous_h = h
+                break
+            else:
+                h /= 2
         iterations += 1
 
-    print(table)
+    print(table_x)
     return np.array(x), np.array(y), iterations
 
-
-
-
-
-def improved_euler_method(f, x0, y0, xn, h, E):
-    p = 2  # Порядок улучшенного метода Эйлера
+def improved_euler_method(f, x0, y0, x_nodes, h, E):
+    p = 2
     x = [x0]
     y = [y0]
-    table = PrettyTable()
-    table.field_names = ["i", "x_i", "y_i", "k1", "k2", "y_i+1"]
-    i = 0
+    table_x = PrettyTable()
+    table_x.field_names = ["Узел", "Шаг", "F_h", "F_h/2", "R", "E"]
     iterations = 0
-    while x[-1] < xn:
-        x_new = x[-1] + h
-        if x_new > xn:
-            x_new = xn
-        y_new = improved_euler_step(f, x[-1], y[-1], h)
-        y_half_step = improved_euler_step(f, x[-1], y[-1], h / 2)
-        y_half = improved_euler_step(f, x[-1] + h / 2, y_half_step, h / 2)
-        
-        R = np.abs(y_new - y_half) / (2**p - 1)
-        
-        if R <= E:
-            x.append(x_new)
-            y.append(y_new)
-            table.add_row([i, f"{x[-1]:.4f}", f"{y[-1]:.4f}", f"{h*f(x[-1], y[-1]):.4f}", f"{h*f(x[-1] + h, y[-1] + h*f(x[-1], y[-1])):.4f}", f"{y_new:.4f}"])
-            i += 1
-        else:
-            h /= 2
+
+    for node in x_nodes[1:]:
+        while True:
+            y_new = improved_euler_step(f, x[-1], y[-1], h)
+            y_half_1 = improved_euler_step(f, x[-1], y[-1], h / 2)
+            y_half_2 = improved_euler_step(f, x[-1] + h / 2, y_half_1, h / 2)
+            R = np.abs(y_new - y_half_2) / (2**p - 1)
+            table_x.add_row([node, f"{h:.4f}", f"{y_half_1:.4f}", f"{y_half_2:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            if R <= E:
+                x.append(node)
+                y.append(y_new)
+                break
+            else:
+                h /= 2
         iterations += 1
 
-    print(table)
+    print(table_x)
     return np.array(x), np.array(y), iterations
 
-
-
-
-# Метод Рунге-Кутта 4-го порядка
-def rk4_method(f, x0, y0, xn, h, E):
-    p = 4  # Порядок метода Рунге-Кутта
+def rk4_method(f, x0, y0, x_nodes, h, E):
+    p = 4
     x = [x0]
     y = [y0]
-    table = PrettyTable()
-    table.field_names = ["i", "x_i", "y_i", "k1", "k2", "k3", "k4", "y_i+1"]
-    i = 0
+    table_x = PrettyTable()
+    table_x.field_names = ["Узел", "Шаг", "F_h", "F_h/2", "R", "E"]
     iterations = 0
-    while x[-1] < xn:
-        x_new = x[-1] + h
-        if x_new > xn:
-            x_new = xn
-        y_new = rk4_step(f, x[-1], y[-1], h)
-        y_half_step = rk4_step(f, x[-1], y[-1], h / 2)
-        y_half = rk4_step(f, x[-1] + h / 2, y_half_step, h / 2)
-        
-        R = np.abs(y_new - y_half) / (2**p - 1)
-        
-        if R <= E:
-            x.append(x_new)
-            y.append(y_new)
-            k1 = h * f(x[-1], y[-1])
-            k2 = h * f(x[-1] + h / 2, y[-1] + k1 / 2)
-            k3 = h * f(x[-1] + h / 2, y[-1] + k2 / 2)
-            k4 = h * f(x[-1] + h, y[-1] + k3)
-            table.add_row([i, f"{x[-1]:.4f}", f"{y[-1]:.4f}", f"{k1:.4f}", f"{k2:.4f}", f"{k3:.4f}", f"{k4:.4f}", f"{y_new:.4f}"])
-            i += 1
-        else:
-            h /= 2
+
+    for node in x_nodes[1:]:
+        while True:
+            y_new = rk4_step(f, x[-1], y[-1], h)
+            y_half_step = rk4_step(f, x[-1], y[-1], h / 2)
+            y_half = rk4_step(f, x[-1] + h / 2, y_half_step, h / 2)
+            R = np.abs(y_new - y_half) / (2**p - 1)
+            table_x.add_row([node, f"{h:.4f}", f"{y_new:.4f}", f"{y_half:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            if R <= E:
+                x.append(node)
+                y.append(y_new)
+                break
+            else:
+                h /= 2
         iterations += 1
 
-    print(table)
+    print(table_x)
     return np.array(x), np.array(y), iterations
 
-
-# Метод Адамса
-def adams_method(f, x0, y0, xn, h, E):
-    p = 4  # Порядок метода Адамса
-    x_rk, y_rk, _ = rk4_method(f, x0, y0, x0 + 3 * h, h, E)
+def adams_method(f, x0, y0, x_nodes, h, E):
+    p = 4
+    x_rk, y_rk, _ = rk4_method(f, x0, y0, x_nodes[:4], h, E)
     x = list(x_rk)
     y = list(y_rk)
-    table = PrettyTable()
-    table.field_names = ["i", "x_i", "y_i", "f(x_i, y_i)", "y_i+1"]
-    i = 3
+    table_x = PrettyTable()
+    table_x.field_names = ["Узел", "Шаг", "F_h", "Точное значение", "R", "E"]
     iterations = 0
 
-    # Вычисляем точное решение на всей сетке
-    x_full = np.linspace(x0, xn, int((xn - x0) / h) + 1)
-    y_exact_values = exact_solution_solve_ivp(f, x0, y0, xn, x_full)
-
-    while x[-1] < xn:
-        x_new = x[-1] + h
-        if x_new > xn:
-            x_new = xn
-        f_vals = [f(x[j], y[j]) for j in range(i, i-4, -1)]
-        y_new = y[-1] + h * (55 * f_vals[0] - 59 * f_vals[1] + 37 * f_vals[2] - 9 * f_vals[3]) / 24
-
-        # Оценка точности по точному решению
-        idx = len(x)  # Индекс для точного решения
-        R = np.abs(y_new - y_exact_values[idx])
-
-        if R <= E:
-            x.append(x_new)
-            y.append(y_new)
-            table.add_row([i, f"{x[-1]:.4f}", f"{y[-1]:.4f}", f"{f(x[-1], y[-1]):.4f}", f"{y_new:.4f}"])
-            i += 1
-        else:
-            h /= 2
-            # Пересчитать точное решение с новым шагом
-            x_full = np.linspace(x0, xn, int((xn - x0) / h) + 1)
-            y_exact_values = exact_solution_solve_ivp(f, x0, y0, xn, x_full)
-
+    for node in x_nodes[4:]:
+        while True:
+            f_vals = [f(x[j], y[j]) for j in range(-1, -5, -1)]
+            y_new = y[-1] + h * (55 * f_vals[0] - 59 * f_vals[1] + 37 * f_vals[2] - 9 * f_vals[3]) / 24
+            y_exact = f_ac(node)
+            R = np.abs(y_new - y_exact)
+            
+            table_x.add_row([node, f"{h:.4f}", f"{y_new:.4f}", f"{y_exact:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            
+            if R <= E:
+                x.append(node)
+                y.append(y_new)
+                break
+            else:
+                h /= 2
         iterations += 1
 
-    print(table)
+    print(table_x)
     return np.array(x), np.array(y), iterations
 
-
-
-
-def exact_solution_solve_ivp(f, x0, y0, xn, x_points):
-    sol = solve_ivp(lambda x, y: f(x, y), [x0, xn], [y0], t_eval=x_points)
-    return sol.y[0]
-
-
 print("Выберите функцию для решения:")
-print("1 - y' = y + (1 + x) * y^2")
-# 0 0.01
-# 1
-# 0.01
-# 1e-6
-print("2 - y' = x^2 * y")
-# 0 0.1
-# 2
-# 0.1
-# 1e-6
-
-print("3 - y' = 3 * x ** 2 * y + x^2 * exp(x^3)")
-# 0 1
-# 2
-# 0.01
-# 1e-6
-
+print("1 - y' = x ** 2 + x - 2 * y")
+print("2 - y' = 2 * x - y + x ** 2")
+print("3 - y' = 5 * x ** 2 - 2 * y / x")
 
 func_id = input("Введите номер функции: ")
 
 if func_id == "1":
     f = f1
+    f_ac = f1_ac
 elif func_id == "2":
     f = f2
+    f_ac = f1_ac
 elif func_id == "3":
     f = f3
+    f_ac = f1_ac
 else:
     print("Некорректный выбор функции")
     exit()
@@ -265,12 +195,22 @@ elif method_id == "4":
 else:
     print("Некорректный выбор метода")
     exit()
+    
+    
+def exact_solution_solve_ivp(x_nodes, f_acc):
+    return np.array([f_ac(x) for x in x_nodes])
+    
 
-x, y, iterations = method(f, x0, y0, xn, h, E)
-y_exact_values = exact_solution_solve_ivp(f, x0, y0, xn, x)
-
+# Считаем узлы для всех
+x_nodes = np.arange(x0, xn + h, h)
 
 print(f"\n{method_name}:")
+x, y, iterations = method(f, x0, y0, x_nodes, h, E)
+y_exact_values = exact_solution_solve_ivp(x_nodes, f_ac)
+
+
+jls_extract_var = print
+jls_extract_var("\nСравнение с точными значениями")
 
 table = PrettyTable()
 table.field_names = ["x", "y (численное)", "y (точное)", "delta"]
@@ -280,14 +220,13 @@ for x_i, y_i, y_exact_i in zip(x, y, y_exact_values):
 print(table)
 if method_id == "4":
     E_max = max(np.abs(y_exact_values - y))
-    print(f"Оценка точности: E_max = {E_max}")
+    print(f"Оценка точности: E_max = {E_max:.4f}")
 print(f"Количество итераций: {iterations}")
 
 plt.figure(figsize=(10, 6))
 plt.plot(x, y, label=method_name)
-x_exact = np.linspace(x0, xn, 100)
-y_exact = exact_solution_solve_ivp(f, x0, y0, xn, x_exact)
-plt.plot(x_exact, y_exact, label="Точное решение", linestyle="--")
+y_exact_dense = exact_solution_solve_ivp(np.linspace(x0, xn, 100), f_ac)
+plt.plot(np.linspace(x0, xn, 100), y_exact_dense, label="Точное решение", linestyle="--")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.legend()
