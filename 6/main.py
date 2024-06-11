@@ -52,7 +52,8 @@ def euler_method(f, x0, y0, x_nodes, h, E):
             y_half_1 = euler_step(f, x[-1], y[-1], h / 2)
             y_half_2 = euler_step(f, x[-1] + h / 2, y_half_1, h / 2)
             R = np.abs(y_new - y_half_2) / (2**p - 1)
-            table_x.add_row([node, f"{h:.4f}", f"{y_half_1:.4f}", f"{y_half_2:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            table_x.add_row([node, f"{h:.4f}", f"{y_new:.4f}", f"{y_half_2:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            
             if R <= E:
                 x.append(node)
                 y.append(y_new)
@@ -81,7 +82,7 @@ def improved_euler_method(f, x0, y0, x_nodes, h, E):
             table_x.add_row([node, f"{h:.4f}", f"{y_half_1:.4f}", f"{y_half_2:.4f}", f"{R:.4f}", f"{E:.4f}"])
             if R <= E:
                 x.append(node)
-                y.append(y_new)
+                y.append(y_half_1)
                 break
             else:
                 h /= 2
@@ -125,17 +126,22 @@ def adams_method(f, x0, y0, x_nodes, h, E):
     table_x.field_names = ["Узел", "Шаг", "F_h", "Точное значение", "R", "E"]
     iterations = 0
 
-    for node in x_nodes[4:]:
+    for i in range(3, len(x_nodes) - 1):
         while True:
-            f_vals = [f(x[j], y[j]) for j in range(-1, -5, -1)]
-            y_new = y[-1] + h * (55 * f_vals[0] - 59 * f_vals[1] + 37 * f_vals[2] - 9 * f_vals[3]) / 24
-            y_exact = f_ac(node)
+            f_vals = [f(x[j], y[j]) for j in range(i, i-4, -1)]
+            y_pred = y[-1] + h * (55 * f_vals[0] - 59 * f_vals[1] + 37 * f_vals[2] - 9 * f_vals[3]) / 24
+            # print(y_pred)
+            f_pred = f(x_nodes[i+1], y_pred)
+            y_new = y[-1] + h * (9 * f_pred + 19 * f_vals[0] - 5 * f_vals[1] + f_vals[2]) / 24
+            # print(y_new)
+            y_exact = f_ac(x_nodes[i+1])        
+            
             R = np.abs(y_new - y_exact)
             
-            table_x.add_row([node, f"{h:.4f}", f"{y_new:.4f}", f"{y_exact:.4f}", f"{R:.4f}", f"{E:.4f}"])
+            table_x.add_row([x_nodes[i+1], f"{h:.4f}", f"{y_new:.4f}", f"{y_exact:.4f}", f"{R:.4f}", f"{E:.4f}"])
             
             if R <= E:
-                x.append(node)
+                x.append(x_nodes[i+1])
                 y.append(y_new)
                 break
             else:
